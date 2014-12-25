@@ -9,16 +9,30 @@
 % Returns:
 % rotation: a mapping of the old color to the new color
 
-function [] = getRecolor(imgRGB, type)
+function getRecolor(imgRGB)%, type)
 %% Represent colors using Gaussian Mixture Model (GMM)
 % translate RGB to L*a*b* 
-img = rgb2lab(imgRGB);
+cform = makecform('srgb2lab');
+img = applycform(imgRGB, cform);
 
 % Estimate a GMM for the data
+k = 6;    % paper provided a range of 2 <= K <= 6
 
-% todo: is there a better way to pick k?
-k = 4;    % paper provided a range of 2 <= K <= 6
-gmm = gmdistribution.fit(img, k, 'CovType', 'diagonal', 'Regularize', 1);
+% Input matrix to GMM must be 2D
+gmmInput = [img(:,:,1); img(:,:,2); img(:,:,3)];
+
+% minimization idea from matlab docs for fitgmdist
+AIC = zeros(1,k);
+gmms = cell(1,k);
+for i = 1:k
+    % fitgmdist seems to use the option names of gmdistribution.fit (e.g.
+    % 'CovType' instead of 'CovarianceType') ? confusion
+    gmms{i} = fitgmdist(gmmInput, i, 'CovType', 'diagonal', 'Regularize', 0.1);
+    AIC(i) = gmms{i}.AIC;
+end
+
+[~, numComponents] = min(AIC);
+bestGmm = gmms{numComponents};
 
 %% Measure target distance using KL divergence
 
