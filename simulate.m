@@ -141,7 +141,8 @@ end
 
 simgRGB = nsimgRGB;
 
-% for debugging
-imshow(simgRGB);
+if (debug)
+    imshow(simgRGB);
+end
 
 end
