@@ -117,7 +117,7 @@ for i = 1:k
         sigma2 = sigmas(:,:,j);
         
         % this is gross but we're going to assume that sigmas is diagonal 
-        % i.e. the parameter is 1 x #dim x k. 
+        % i.e. the parameter is 1 x 3 x k. 
         % the inverse of a diagonal matrix is just 1/all
         % the elements 
         inv1 = 1./sigma1;
@@ -147,7 +147,7 @@ r = sqrt(newMus(:,2).^2 + newMus(:,3).^2);
 theta = atan2(newMus(:,3), newMus(:,2));
 
 newMus(:,2) = r .* cos(theta + rot);
-newMus(:,3) = r .* cos(theta + rot);
+newMus(:,3) = r .* sin(theta + rot);
 
 % simulate the new color
 % must first translate back into RGB 
