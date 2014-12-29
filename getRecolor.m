@@ -51,7 +51,7 @@ bestGmm = gmms{numComponents};
 % KL Divergences of original pairs
 originalMus = bestGmm.mu;                 % mu is k x 3 (3 color dimensions)
 originalSigmas = bestGmm.Sigma;           % sigmas is 1 x 3 x k (only diagonal of cov matrix stored)
-numComponents = bestGmm.NComponents;
+numComponents = bestGmm.NComponents;      % number of gaussians
 originalKLVals = KLDivergence(originalMus, originalSigmas, numComponents);
 
 %% Solve the optimization: minimize difference between original KL and new KL
@@ -93,8 +93,7 @@ end
 % the optimization
 options = optimoptions(@lsqnonlin, 'Algorithm', 'levenberg-marquardt', 'Display', 'off');
 f = @(x)findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, objWeights, x, type);
-% todo: what to make x0 (initial rotation)?
-% returns rotation angle (radians)
+% returns rotation angle (radians) each of the gaussians
 x0 = atan2(originalMus(:,3), originalMus(:,2));
 rot = lsqnonlin(f, x0, [], [], options);
 
@@ -117,7 +116,7 @@ for i = 1:k
         sigma2 = sigmas(:,:,j);
         
         % this is gross but we're going to assume that sigmas is diagonal 
-        % i.e. the parameter is 1 x #dim x k. 
+        % i.e. the parameter is 1 x 3 x k. 
         % the inverse of a diagonal matrix is just 1/all
         % the elements 
         inv1 = 1./sigma1;
@@ -147,7 +146,7 @@ r = sqrt(newMus(:,2).^2 + newMus(:,3).^2);
 theta = atan2(newMus(:,3), newMus(:,2));
 
 newMus(:,2) = r .* cos(theta + rot);
-newMus(:,3) = r .* cos(theta + rot);
+newMus(:,3) = r .* sin(theta + rot);
 
 % simulate the new color
 % must first translate back into RGB 
