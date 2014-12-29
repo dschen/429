@@ -125,12 +125,11 @@ for i=1:width
     % (3)
     % Compute the resulting pixel values according to
     % V' = T^-1*Q'
-    newV = uint8(invT*newQ*255);
-    nsimgRGB(j,i,:) = uint8(newV(:));
+    nsimgRGB(j,i,:) = invT*newQ;
     end
 end
 
-simgRGB = uint8(nsimgRGB);
+simgRGB = nsimgRGB;
 
 % for debugging
 imshow(simgRGB);
