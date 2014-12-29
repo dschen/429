@@ -11,7 +11,7 @@
 %
 % Authors: Dorothy Chen and Carolyn Chen
 
-function getRecolor(imgRGB)%, type)
+function rot = getRecolor(imgRGB)%, type)
 %% Represent colors using Gaussian Mixture Model (GMM)
 % translate RGB to L*a*b* 
 cform = makecform('srgb2lab');
@@ -21,19 +21,20 @@ img = applycform(imgRGB, cform);
 k = 6;    % paper provided a range of 2 <= K <= 6
 
 % Input matrix to GMM must be 2D
-gmmInput = [img(:,:,1); img(:,:,2); img(:,:,3)];
+% just make each column one of the attributes?
+L = img(:,:,1);
+a = img(:,:,2);
+b = img(:,:,3);
+gmmInput = [L(:) a(:) b(:)];
 dim = size(gmmInput);
 
 % minimization idea from matlab docs for fitgmdist
 AIC = zeros(1,k);
 gmms = cell(1,k);
 for i = 1:k
-    % fitgmdist seems to use the option names of gmdistribution.fit (e.g.
-    % 'CovType' instead of 'CovarianceType') ? confusion
-    %
     % CovType and Regularize options are to avoid "ill-conditioned
     % covariance matrices", whatever that means. --matlab docs 
-    gmms{i} = fitgmdist(gmmInput, i, 'CovType', 'diagonal', 'Regularize', 0.1);
+    gmms{i} = gmdistribution.fit(gmmInput, i, 'CovType', 'diagonal', 'Regularize', 0.1);
     AIC(i) = gmms{i}.AIC;
 end
 
@@ -42,9 +43,6 @@ end
 bestGmm = gmms{numComponents};
 
 %% Measure target distance using KL divergence
-% There doesn't seem to be a matlab function for this
-% crying
-
 % from the paper: "The goal of the proposed re-coloring algorithm is that the symmetric
 % KL divergence between each pair of Gaussians in the original image
 % will be preserved in the recolored image when perceived by people
@@ -52,26 +50,20 @@ bestGmm = gmms{numComponents};
 
 % KL Divergences of original pairs
 originalMus = bestGmm.mu;                 % mu is k x #dim
-originalSigmas = bestGmm.Sigma;           % idk why, but sigmas is 1 x #dim x k
-% jk figured it out. it's because covtype is set to diagonal, so only the
-% diagonal items are stored. (if set to 'full', sigmas will be dim x dim x k
+originalSigmas = bestGmm.Sigma;           % sigmas is 1 x #dim x k (only diagonal of cov matrix stored)
 originalWeights = bestGmm.PComponents;    % mixing weights is 1 x k
 originalKLVals = KLDivergence(originalMus, originalSigmas, numComponents);
 
 %% Solve the optimization: minimize difference between original KL and new KL
-
 % objective = originalKLVals - simulated-rotated-KLVals
 % need to find simulation of CVD function. let's pretend it's called sim() for now
-
-% opt using lsqnonlin? so that would involve writing a function to find the
-% obj fnc and calling lsqnonlin on that
 
 % P(xj, i): probability that xj belongs to ith gaussian
 [~, ~, P] = cluster(bestGmm, gmmInput);
 
 % color feature weights
 alphas = zeros(dim(1),1);
-for i = 1:alphas.length
+for i = 1:size(alphas, 1)
     alphas(i) = sqrt(sum((gmmInput(i,:) - sim(gmmInput(i,:))).^2, 2));
 end
 
@@ -96,13 +88,18 @@ for i = 1:numComponents
     end
 end
 
+% the optimization
+options = optimoptions('Algorithm', 'levenberg-marquardt', 'Display', 'off');
+f = @(x)findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, objWeights, x, type);
+% todo: what to make x0 (initial rotation)?
+rot = lsqnonlin(f, x0, [], [], options);
+
 end
 
 % finds Symmetric KL divergence between all pairs of the k components
 % uses closed form formula from the paper (+google. the one in the paper is
 % weird and confusing and possibly not technically correct?)
 function divergences = KLDivergence(mus, sigmas, k)
-
 % create empty vector to store divergences in for each pair
 % there are k choose 2 pairs = k!/(2!(k-2)!) = k(k-1)/2
 divergences = zeros(k*(k-1)/2, 1);
@@ -131,13 +128,26 @@ for i = 1:k
 end
 end
 
-function diffs = findDiffs(originalKLVals, originalMus, originalSigmas, weights, rot, type)
+% optimization function. finds differences between the original KL
+% divergence values and the simulated-rotated KL values
+%
+% too slow to pass in original image and rotate that--that involves
+% refitting a GMM for each iteration, which is way too costly.
+% instead, just rotate the mus and assume that the sigmas stay unchanged
+function diffs = findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, weights, rot, type)
 % get new color
 % rotate original mu on a*b* plane
-% we're assuming that original sigma is not changing 
+newMus = originalMus;
 
-% find KL divergence for new color
+% we're assuming that original sigma is not changing (says the paper)
+newSigmas = originalSigmas;
+
+% simulate the new color
+
+% find KL divergence for CVD version of the new color
+newKLVals = KLDivergence(newMus, newSigmas, numComponents);
 
 % find difference + multiply by weight for each pair of gaussians
+diffs = (newKLVals - originalKLVals).*weights;
 
 end
