@@ -49,8 +49,8 @@ bestGmm = gmms{numComponents};
 % with CVD."
 
 % KL Divergences of original pairs
-originalMus = bestGmm.mu;                 % mu is k x #dim
-originalSigmas = bestGmm.Sigma;           % sigmas is 1 x #dim x k (only diagonal of cov matrix stored)
+originalMus = bestGmm.mu;                 % mu is k x 3 (3 color dimensions)
+originalSigmas = bestGmm.Sigma;           % sigmas is 1 x 3 x k (only diagonal of cov matrix stored)
 originalWeights = bestGmm.PComponents;    % mixing weights is 1 x k
 originalKLVals = KLDivergence(originalMus, originalSigmas, numComponents);
 
@@ -64,7 +64,7 @@ originalKLVals = KLDivergence(originalMus, originalSigmas, numComponents);
 % color feature weights
 alphas = zeros(dim(1),1);
 for i = 1:size(alphas, 1)
-    alphas(i) = sqrt(sum((gmmInput(i,:) - sim(gmmInput(i,:))).^2, 2));
+    alphas(i) = sqrt(sum((gmmInput(i,:) - sim(gmmInput(i,:), type)).^2, 2));
 end
 
 % cluster weights
@@ -92,6 +92,7 @@ end
 options = optimoptions('Algorithm', 'levenberg-marquardt', 'Display', 'off');
 f = @(x)findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, objWeights, x, type);
 % todo: what to make x0 (initial rotation)?
+% returns rotation angle (radians)
 rot = lsqnonlin(f, x0, [], [], options);
 
 end
@@ -135,17 +136,25 @@ end
 % refitting a GMM for each iteration, which is way too costly.
 % instead, just rotate the mus and assume that the sigmas stay unchanged
 function diffs = findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, weights, rot, type)
-% get new color
-% rotate original mu on a*b* plane
+% get new color: rotate original mu on a*b* plane
+% mu is kx3: k groups, 3 color features: L* first, a* second, and b* third
+% we're rotating in the a*b* plane, so mus(:,1) will not change
 newMus = originalMus;
+r = sqrt(newMus(:,2).^2 + newMus(:,3).^2);
+theta = atan2(newMus(:,3), newMus(:,2));
 
-% we're assuming that original sigma is not changing (says the paper)
-newSigmas = originalSigmas;
+newMus(:,2) = r .* cos(theta + rot);
+newMus(:,3) = r .* cos(theta + rot);
 
 % simulate the new color
+simulatedNewMus = zeros(numComponents, 3);
+for i = 1:numComponents
+    simulatedNewMus(i,:) = sim(newMus(i,:), type);
+end
 
 % find KL divergence for CVD version of the new color
-newKLVals = KLDivergence(newMus, newSigmas, numComponents);
+% we're assuming that original sigma (covariance matrix) is not changing
+newKLVals = KLDivergence(simulatedNewMus, originalSigmas, numComponents);
 
 % find difference + multiply by weight for each pair of gaussians
 diffs = (newKLVals - originalKLVals).*weights;
