@@ -11,7 +11,7 @@
 %
 % Authors: Dorothy Chen and Carolyn Chen
 
-function rot = getRecolor(imgRGB)%, type)
+function [rot] = getRecolor(imgRGB, type)
 %% Represent colors using Gaussian Mixture Model (GMM)
 % translate RGB to L*a*b* 
 cform = makecform('srgb2lab');
@@ -51,27 +51,29 @@ bestGmm = gmms{numComponents};
 % KL Divergences of original pairs
 originalMus = bestGmm.mu;                 % mu is k x 3 (3 color dimensions)
 originalSigmas = bestGmm.Sigma;           % sigmas is 1 x 3 x k (only diagonal of cov matrix stored)
-originalWeights = bestGmm.PComponents;    % mixing weights is 1 x k
+numComponents = bestGmm.NComponents;
 originalKLVals = KLDivergence(originalMus, originalSigmas, numComponents);
 
 %% Solve the optimization: minimize difference between original KL and new KL
-% objective = originalKLVals - simulated-rotated-KLVals
-% need to find simulation of CVD function. let's pretend it's called simulate() for now
-
 % P(xj, i): probability that xj belongs to ith gaussian
 [~, ~, P] = cluster(bestGmm, gmmInput);
 
 % color feature weights
 alphas = zeros(dim(1),1);
+% must first translate back into RGB 
+lab2rgb = makecform('lab2srgb');
+labColor = cat(3, gmmInput(:,1), gmmInput(:,2), gmmInput(:,3));
+rgbColor = applycform(labColor, lab2rgb);
+sim = double(simulate(rgbColor, type));
 for i = 1:size(alphas, 1)
-    alphas(i) = sqrt(sum((gmmInput(i,:) - simulate(gmmInput(i,:), type)).^2, 2));
+    alphas(i) = sqrt(sum((gmmInput(i,:) - sim(i,:)).^2, 2));
 end
 
 % cluster weights
 lambdas = zeros(numComponents, 1);
 total = 0;
 for i = 1:numComponents
-    for j = 1:alphas.length
+    for j = 1:size(alphas, 1)
         lambdas(i) = lambdas(i) + alphas(j) * P(j, i);
     end
     total = total + lambdas(i);
@@ -89,10 +91,11 @@ for i = 1:numComponents
 end
 
 % the optimization
-options = optimoptions('Algorithm', 'levenberg-marquardt', 'Display', 'off');
+options = optimoptions(@lsqnonlin, 'Algorithm', 'levenberg-marquardt', 'Display', 'off');
 f = @(x)findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, objWeights, x, type);
 % todo: what to make x0 (initial rotation)?
 % returns rotation angle (radians)
+x0 = atan2(originalMus(:,3), originalMus(:,2));
 rot = lsqnonlin(f, x0, [], [], options);
 
 end
@@ -147,10 +150,11 @@ newMus(:,2) = r .* cos(theta + rot);
 newMus(:,3) = r .* cos(theta + rot);
 
 % simulate the new color
-simulatedNewMus = zeros(numComponents, 3);
-for i = 1:numComponents
-    simulatedNewMus(i,:) = simulate(newMus(i,:), type);
-end
+% must first translate back into RGB 
+lab2rgb = makecform('lab2srgb');
+labColor = cat(3, newMus(:,1), newMus(:,2), newMus(:,3));
+rotRgbColor = applycform(labColor, lab2rgb);
+simulatedNewMus = simulate(rotRgbColor, type);
 
 % find KL divergence for CVD version of the new color
 % we're assuming that original sigma (covariance matrix) is not changing
