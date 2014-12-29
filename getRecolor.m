@@ -56,7 +56,7 @@ originalKLVals = KLDivergence(originalMus, originalSigmas, numComponents);
 
 %% Solve the optimization: minimize difference between original KL and new KL
 % objective = originalKLVals - simulated-rotated-KLVals
-% need to find simulation of CVD function. let's pretend it's called sim() for now
+% need to find simulation of CVD function. let's pretend it's called simulate() for now
 
 % P(xj, i): probability that xj belongs to ith gaussian
 [~, ~, P] = cluster(bestGmm, gmmInput);
@@ -64,7 +64,7 @@ originalKLVals = KLDivergence(originalMus, originalSigmas, numComponents);
 % color feature weights
 alphas = zeros(dim(1),1);
 for i = 1:size(alphas, 1)
-    alphas(i) = sqrt(sum((gmmInput(i,:) - sim(gmmInput(i,:), type)).^2, 2));
+    alphas(i) = sqrt(sum((gmmInput(i,:) - simulate(gmmInput(i,:), type)).^2, 2));
 end
 
 % cluster weights
@@ -149,7 +149,7 @@ newMus(:,3) = r .* cos(theta + rot);
 % simulate the new color
 simulatedNewMus = zeros(numComponents, 3);
 for i = 1:numComponents
-    simulatedNewMus(i,:) = sim(newMus(i,:), type);
+    simulatedNewMus(i,:) = simulate(newMus(i,:), type);
 end
 
 % find KL divergence for CVD version of the new color
