@@ -18,6 +18,9 @@
 
 function [simgRGB] = simulate(imgRGB, type)
 
+% debug mode
+debug = 1;
+
 % Constants
 % LMS Tristimulus Values for the Red, Green, and Blue Primaries
 % as described in the paper, Table 1, pg. 2648
@@ -81,13 +84,20 @@ cmore = E(1)*Amore(2) - E(2)*Amore(1);
 
 for i=1:width
     for j=1:height
+        
+    % if in debug mode
+    if (debug)
+        R = double(imgRGB(j,i,1));
+        G = double(imgRGB(j,i,2));
+        B = double(imgRGB(j,i,3));
+        V = ([R;G;B]/255);
+    else
+        V = imgRGB(j,i,:);
+    end
+        
     % (1)
     % Compute the LMS specification Q fom the original pixel values V
     % by means of Q = T*V
-    R = double(imgRGB(j,i,1));
-    G = double(imgRGB(j,i,2));
-    B = double(imgRGB(j,i,3));
-    V = ([R;G;B]/255);
     Q = T*V;
     
     % (2) 
