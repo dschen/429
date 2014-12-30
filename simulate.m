@@ -16,10 +16,15 @@
 % Code to convert wavelength to RGB from MathWorks in 
 % spectral_color_1
 
-function [simgRGB] = simulate(imgRGB, type)
+function [simgRGB] = simulate(imgRGB, type, dBug)
 
-% debug mode
-debug = 1;
+% if (debug) show simulated image
+switch nargin
+    case 3
+        debug = dBug;
+    case 2
+        debug = 0;
+end
 
 % Constants
 % LMS Tristimulus Values for the Red, Green, and Blue Primaries

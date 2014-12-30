@@ -14,9 +14,6 @@
 
 function [rot, corRGB] = getRecolor(imgRGB, type)
 %% Represent colors using Gaussian Mixture Model (GMM)
-% convert RGB range (0-255) to (0-1)
-imgRGB = im2double(imgRGB);
-
 % translate RGB to L*a*b* 
 cform = makecform('srgb2lab');
 img = applycform(imgRGB, cform);
@@ -123,7 +120,7 @@ for i = 1:numComponents
 end
 
 % Lightness L* and chroma C is unchanged
-% Hue of the transformed color: xj(H)
+% Hue of the transformed color: H(xj)
 H = imgLCH(:,:,3);
 
 % calculate new hue for each pixel
@@ -140,10 +137,8 @@ imgLCH(:,:,3) = H;
 cform = makecform('lch2lab');
 imgLAB = applycform(imgLCH, cform);
 cform = makecform('lab2srgb');
+
 corRGB = applycform(imgLAB, cform);
-
-imshow(corRGB);
-
 
 end
 
