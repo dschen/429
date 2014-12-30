@@ -8,11 +8,15 @@
 %
 % Returns:
 % rotation: a mapping of the old color to the new color
+% corRGB: the corrected image
 %
 % Authors: Dorothy Chen and Carolyn Chen
 
-function [rot] = getRecolor(imgRGB, type)
+function [rot, corRGB] = getRecolor(imgRGB, type)
 %% Represent colors using Gaussian Mixture Model (GMM)
+% convert RGB range (0-255) to (0-1)
+imgRGB = im2double(imgRGB);
+
 % translate RGB to L*a*b* 
 cform = makecform('srgb2lab');
 img = applycform(imgRGB, cform);
@@ -96,6 +100,50 @@ f = @(x)findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, ob
 % returns rotation angle (radians) each of the gaussians
 x0 = atan2(originalMus(:,3), originalMus(:,2));
 rot = lsqnonlin(f, x0, [], [], options);
+
+%% Gaussian mapping for Interpolation
+%  recolor the image
+
+% mapping works in the CIE LCH color space
+% img is in LAB space
+cform = makecform('lab2lch');
+imgLCH = applycform(img, cform);
+
+% M(mu) - mu  where M is mapping function, rot, all in Hue space
+differenceMus = zeros(numComponents,1);
+for i = 1:numComponents
+    abMu = [originalMus(i,2); originalMus(i,3)];
+    theta = rot(i);
+    R = [cos(theta) -sin(theta); sin(theta) cos(theta)];
+    newabMu = R*abMu;
+    newlabMu = [originalMus(i,1) newabMu(1) newabMu(2)];
+    newlabMuLCH = applycform(newlabMu, cform);
+    labMuLCH = applycform(originalMus(i,:), cform);
+    differenceMus(i) = newlabMuLCH(3) - labMuLCH(3);
+end
+
+% Lightness L* and chroma C is unchanged
+% Hue of the transformed color: xj(H)
+H = imgLCH(:,:,3);
+
+% calculate new hue for each pixel
+for j = 1:dim(1)
+    hj = H(j);
+    for i = 1:numComponents
+        hj = hj +  P(j, i)*differenceMus(i);
+    end
+    H(j) = hj;
+end
+
+% return to RGB space
+imgLCH(:,:,3) = H;
+cform = makecform('lch2lab');
+imgLAB = applycform(imgLCH, cform);
+cform = makecform('lab2srgb');
+corRGB = applycform(imgLAB, cform);
+
+imshow(corRGB);
+
 
 end
 

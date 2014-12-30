@@ -19,7 +19,7 @@
 function [simgRGB] = simulate(imgRGB, type)
 
 % debug mode
-debug = 0;
+debug = 1;
 
 % Constants
 % LMS Tristimulus Values for the Red, Green, and Blue Primaries
