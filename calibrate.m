@@ -122,7 +122,10 @@ maxR = 9.234669;
 %% Order based on user input
 % Correct input for debugging:
 if (debug)
-    usr = (1:1:numPanels);
+    %usr = (1:1:numPanels); % normal vision
+    usr = [1 16 2 15 3 14 13 4 5 12 11 6 10 7 9 8];% protanope
+    %usr = [1 2 16 3 4 15 14 5 13 6 12 7 8 11 10 9]; %deuteranope
+    %usr = [1 2 3 4 5 6 7 8 16 9 15 10 11 14 13 12];%tritanope
 end
 
 % plot ordering of panels
@@ -138,9 +141,11 @@ end
 diffU = zeros(numPanels-1, 1);
 diffV = zeros(numPanels-1, 1);
 for i=1:numPanels-1
-    diffU(i) = U(usr(i+1))-U(usr(i));
-    diffV(i) = V(usr(i+1))-V(usr(i));
+    diffU(i) = U(i+1)-U(i);
+    diffV(i) = V(i+1)-V(i);
 end
+diffU
+diffV
 if (debug)
     figure;
     compass(diffU, diffV);
@@ -190,14 +195,19 @@ I2
 R1 = sqrt(I1/(numPanels-1))
 R2 = sqrt(I2/(numPanels-1))
 
+% I am pretty sure the paper has a bug, because they cite using the minor 
+% axis for the confusion Axis, when earlier they said to use the major
+% axis. However, since all their data is based off of this bug, we have
+% no choice but to implement it this way in order to compare our data 
+% with theirs.
 if (R1>R2)
-    majorA = A1;
-    minorA = A2;
+    majorA = A2;
+    minorA = A1;
     majorR = R1;
     minorR = R2;
 else
-    majorA = A2;
-    minorA = A1;
+    majorA = A1;
+    minorA = A2;
     majorR = R2;
     minorR = R1;
 end
@@ -207,23 +217,21 @@ sIndex = majorR/minorR
 % C-index stands for confusion index and indicates the severity of the CVD
 cIndex = majorR/maxR
 
-[X1, Y1] = pol2cart(A1, R1);
-[X2, Y2] = pol2cart(A2, R2);
+[X1, Y1] = pol2cart(majorA, majorR);
+[X2, Y2] = pol2cart(minorA, minorR);
 if (debug)
     compass([X1 X2], [Y1 Y2], 'r');
 end
 
 %% Diagnosis
 delta = 10; % wiggle room
-% I am pretty sure the paper has a bug, because they cite using the minor 
-% axis for the confusion Axis, when earlier they said to use the major
-% axis. However, since all their data is based off of this bug, we have
-% no choice but to implement it this way in order to compare our data 
-% with theirs.
-confusionAxis = rad2deg(minorA);
+
+confusionAxis = rad2deg(majorA);
+confusionAxis
 if (confusionAxis < 62+delta && confusionAxis > 62-delta)
     type = 'normal';
-elseif (confusionAxis < 9.7+delta && confusionAxis > 9.7-delta)
+elseif (confusionAxis < 9.7+delta && confusionAxis > 9.7-delta ...
+        && confusionAxis > 0)
     type = 'protanopia';
 elseif (confusionAxis < -8.8+delta && confusionAxis > -8.8-delta)
     type = 'deuteranopia';
