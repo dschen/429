@@ -13,9 +13,6 @@
 % simgRGB: an imageRGB simulated under "type" of CVD
 %
 % Authors: Dorothy Chen and Carolyn Chen
-% Code to convert wavelength to RGB from MathWorks in 
-% spectral_color_1
-
 function [simgRGB] = simulate(imgRGB, type, dBug)
 
 % if (debug) show simulated image

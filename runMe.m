@@ -6,13 +6,15 @@
 % imgPath: String value, gives path of image
 %
 % Saves:
-% outputImages: ...
+% outputImages: Top left is original image, top right is original image
+% viewed by person with CVD, bottom left is corrected image, and bottom
+% right is corrected image viewed by person with CVD. 
 %
 % Authors: Dorothy Chen and Carolyn Chen
 function runMe(imgPath)
 
 % Calibration
-type = 'deuteranopia';
+[type, confusionAxis, sIndex, cIndex] = calibrate(); %do calibrate(1) to debug
 
 % Get recoloring
 imgRGB = imread(imgPath);
@@ -23,19 +25,15 @@ imgRGB = im2double(imgRGB);
 % Display images
 Fig = figure;
 subplot(2,2,1);
-%subplot('Position',[0 0 0.8 0.8]);
 imshow(imgRGB);
 title(sprintf('Original Image'));
 subplot(2,2,2);
-%subplot('Position',[0 0 0.8 0.8])
 imshow(simulate(imgRGB, type));
 title(sprintf('Original Image, %s View', type));
 subplot(2,2,3);
-%subplot('Position',[0 0 0.8 0.8])
 imshow(corRGB);
 title(sprintf('Corrected Image'));
 subplot(2,2,4);
-%subplot('Position',[0 0 0.8 0.8])
 imshow(simulate(corRGB, type));
 title(sprintf('Corrected Image, %s View', type));
 saveas(Fig, sprintf('Visualization'));
