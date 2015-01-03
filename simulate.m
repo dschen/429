@@ -62,13 +62,7 @@ elseif (strcmp('tritanopia', type))
     % wavelength using Stockman & Sharpe functions
     Aless = T*[0.0930; 0.0073; 0.0000]; % corresponds to 660 nm
     Amore = T*[0.1640; 0.2681; 0.2903]; % corresponds to 485 nm
-    
-    % constant specific to protanopia
-    if (strcmp('protanopia',type))
-        OELine = E(3)/E(2);
-    else %constant specific to deuteranopia
-        OELine = E(3)/E(1);
-    end
+    OELine = E(2)/E(1);
 
 % for now, if no condition
 else
