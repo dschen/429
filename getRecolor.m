@@ -11,7 +11,6 @@
 % corRGB: the corrected image
 %
 % Authors: Dorothy Chen and Carolyn Chen
-
 function [rot, corRGB] = getRecolor(imgRGB, type)
 %% Represent colors using Gaussian Mixture Model (GMM)
 % translate RGB to L*a*b* 
