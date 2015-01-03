@@ -15,8 +15,8 @@
 function [rot, corRGB] = getRecolor(imgRGB, type)
 %% Represent colors using Gaussian Mixture Model (GMM)
 % translate RGB to L*a*b* 
-cform = makecform('srgb2lab');
-img = applycform(imgRGB, cform);
+rgb2lab = makecform('srgb2lab');
+img = applycform(imgRGB, rgb2lab);
 
 % Estimate a GMM for the data
 k = 6;    % paper provided a range of 2 <= K <= 6
@@ -32,10 +32,11 @@ dim = size(gmmInput);
 % minimization idea from matlab docs for fitgmdist
 AIC = zeros(1,k);
 gmms = cell(1,k);
+options = statset('MaxIter', 300);
 for i = 1:k
     % CovType and Regularize options are to avoid "ill-conditioned
     % covariance matrices", whatever that means. --matlab docs 
-    gmms{i} = gmdistribution.fit(gmmInput, i, 'CovType', 'diagonal', 'Regularize', 0.1);
+    gmms{i} = gmdistribution.fit(gmmInput, i, 'CovType', 'diagonal', 'Regularize', 0.1, 'Options', options);
     AIC(i) = gmms{i}.AIC;
 end
 
@@ -54,6 +55,7 @@ originalMus = bestGmm.mu;                 % mu is k x 3 (3 color dimensions)
 originalSigmas = bestGmm.Sigma;           % sigmas is 1 x 3 x k (only diagonal of cov matrix stored)
 numComponents = bestGmm.NComponents;      % number of gaussians
 originalKLVals = KLDivergence(originalMus, originalSigmas, numComponents);
+originalKLVals = originalKLVals/sum(originalKLVals);
 
 %% Solve the optimization: minimize difference between original KL and new KL
 % P(xj, i): probability that xj belongs to ith gaussian
@@ -65,7 +67,11 @@ alphas = zeros(dim(1),1);
 lab2rgb = makecform('lab2srgb');
 labColor = cat(3, gmmInput(:,1), gmmInput(:,2), gmmInput(:,3));
 rgbColor = applycform(labColor, lab2rgb);
-sim = double(simulate(rgbColor, type));
+% simulate
+simRgb = double(simulate(rgbColor, type));
+% translate back to L*a*b*
+simLab = applycform(simRgb, rgb2lab);
+sim = [simLab(:,:,1) simLab(:,:,2) simLab(:,:,3)];
 for i = 1:size(alphas, 1)
     alphas(i) = sqrt(sum((gmmInput(i,:) - sim(i,:)).^2, 2));
 end
@@ -92,11 +98,26 @@ for i = 1:numComponents
 end
 
 % the optimization
-options = optimoptions(@lsqnonlin, 'Algorithm', 'levenberg-marquardt', 'Display', 'off');
+options = optimoptions(@lsqnonlin, 'Algorithm', 'levenberg-marquardt', 'MaxIter', 1000, 'Display', 'off');
 f = @(x)findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, objWeights, x, type);
 % returns rotation angle (radians) each of the gaussians
 x0 = atan2(originalMus(:,3), originalMus(:,2));
 rot = lsqnonlin(f, x0, [], [], options);
+
+% local minima thing
+% r = sqrt(originalMus(:,2).^2 + originalMus(:,3).^2);
+% rotMus = originalMus;
+% rotMus(:,2) = r .* cos(rot);
+% rotMus(:,3) = r .* sin(rot);
+% labColor = cat(3, rotMus(:,1), rotMus(:,2), rotMus(:,3));
+% rgbColor = applycform(labColor, lab2rgb);
+% sim = double(simulate(rgbColor, type));
+% for i = 1:numComponents
+%     if (rotMus(i,2) > 0)
+%         if (sqrt(sum((rgbColor(i,:) - sim(i,:)).^2, 2)))
+%         end
+%     end
+% end
 
 %% Gaussian mapping for Interpolation
 %  recolor the image
@@ -186,21 +207,25 @@ function diffs = findDiffs(originalKLVals, originalMus, originalSigmas, numCompo
 % we're rotating in the a*b* plane, so mus(:,1) will not change
 newMus = originalMus;
 r = sqrt(newMus(:,2).^2 + newMus(:,3).^2);
-theta = atan2(newMus(:,3), newMus(:,2));
 
-newMus(:,2) = r .* cos(theta + rot);
-newMus(:,3) = r .* sin(theta + rot);
+newMus(:,2) = r .* cos(rot);
+newMus(:,3) = r .* sin(rot);
 
 % simulate the new color
 % must first translate back into RGB 
 lab2rgb = makecform('lab2srgb');
+rgb2lab = makecform('srgb2lab');
 labColor = cat(3, newMus(:,1), newMus(:,2), newMus(:,3));
 rotRgbColor = applycform(labColor, lab2rgb);
-simulatedNewMus = simulate(rotRgbColor, type);
+simulatedRgb = simulate(rotRgbColor, type);
+% then must translate back and reformat
+simulatedLab = applycform(simulatedRgb, rgb2lab);
+simulatedNewMus = [simulatedLab(:,:,1) simulatedLab(:,:,2) simulatedLab(:,:,3)];
 
 % find KL divergence for CVD version of the new color
 % we're assuming that original sigma (covariance matrix) is not changing
 newKLVals = KLDivergence(simulatedNewMus, originalSigmas, numComponents);
+newKLVals = newKLVals/sum(newKLVals);
 
 % find difference + multiply by weight for each pair of gaussians
 diffs = (newKLVals - originalKLVals).*weights;
