@@ -68,7 +68,7 @@ lab2rgb = makecform('lab2srgb');
 labColor = cat(3, gmmInput(:,1), gmmInput(:,2), gmmInput(:,3));
 rgbColor = applycform(labColor, lab2rgb);
 % simulate
-simRgb = double(simulate(rgbColor, type));
+simRgb = simulate(rgbColor, type);
 % translate back to L*a*b*
 simLab = applycform(simRgb, rgb2lab);
 sim = [simLab(:,:,1) simLab(:,:,2) simLab(:,:,3)];
@@ -103,21 +103,6 @@ f = @(x)findDiffs(originalKLVals, originalMus, originalSigmas, numComponents, ob
 % returns rotation angle (radians) each of the gaussians
 x0 = atan2(originalMus(:,3), originalMus(:,2));
 rot = lsqnonlin(f, x0, [], [], options);
-
-% local minima thing
-% r = sqrt(originalMus(:,2).^2 + originalMus(:,3).^2);
-% rotMus = originalMus;
-% rotMus(:,2) = r .* cos(rot);
-% rotMus(:,3) = r .* sin(rot);
-% labColor = cat(3, rotMus(:,1), rotMus(:,2), rotMus(:,3));
-% rgbColor = applycform(labColor, lab2rgb);
-% sim = double(simulate(rgbColor, type));
-% for i = 1:numComponents
-%     if (rotMus(i,2) > 0)
-%         if (sqrt(sum((rgbColor(i,:) - sim(i,:)).^2, 2)))
-%         end
-%     end
-% end
 
 %% Gaussian mapping for Interpolation
 %  recolor the image
@@ -221,6 +206,17 @@ simulatedRgb = simulate(rotRgbColor, type);
 % then must translate back and reformat
 simulatedLab = applycform(simulatedRgb, rgb2lab);
 simulatedNewMus = [simulatedLab(:,:,1) simulatedLab(:,:,2) simulatedLab(:,:,3)];
+
+% local minima thing
+% difference threshold. paper suggested tau = 15
+tau = 15;
+for i = 1:numComponents
+    if (newMus(i,2) > 0)
+        if (sqrt(sum((originalMus(i,:) - simulatedNewMus(i,:)).^2, 2)) > tau)
+            newMus(i,3) = -newMus(i,3);
+        end
+    end
+end
 
 % find KL divergence for CVD version of the new color
 % we're assuming that original sigma (covariance matrix) is not changing
