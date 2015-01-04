@@ -144,8 +144,6 @@ for i=1:numPanels-1
     diffU(i) = U(i+1)-U(i);
     diffV(i) = V(i+1)-V(i);
 end
-diffU
-diffV
 if (debug)
     figure;
     compass(diffU, diffV);
@@ -195,19 +193,14 @@ I2
 R1 = sqrt(I1/(numPanels-1))
 R2 = sqrt(I2/(numPanels-1))
 
-% I am pretty sure the paper has a bug, because they cite using the minor 
-% axis for the confusion Axis, when earlier they said to use the major
-% axis. However, since all their data is based off of this bug, we have
-% no choice but to implement it this way in order to compare our data 
-% with theirs.
 if (R1>R2)
-    majorA = A2;
-    minorA = A1;
+    majorA = A1;
+    minorA = A2;
     majorR = R1;
     minorR = R2;
 else
-    majorA = A1;
-    minorA = A2;
+    majorA = A2;
+    minorA = A1;
     majorR = R2;
     minorR = R1;
 end
@@ -217,8 +210,8 @@ sIndex = majorR/minorR
 % C-index stands for confusion index and indicates the severity of the CVD
 cIndex = majorR/maxR
 
-[X1, Y1] = pol2cart(majorA, majorR);
-[X2, Y2] = pol2cart(minorA, minorR);
+[X1, Y1] = pol2cart(majorA, minorR);
+[X2, Y2] = pol2cart(minorA, majorR);
 if (debug)
     compass([X1 X2], [Y1 Y2], 'r');
 end
@@ -226,7 +219,7 @@ end
 %% Diagnosis
 delta = 10; % wiggle room
 
-confusionAxis = rad2deg(majorA);
+confusionAxis = rad2deg(minorA);
 confusionAxis
 if (confusionAxis < 62+delta && confusionAxis > 62-delta)
     type = 'normal';

@@ -14,13 +14,30 @@
 function runMe(imgPath)
 
 % Calibration
-[type, confusionAxis, sIndex, cIndex] = calibrate(); %do calibrate(1) to debug
+[type, confusionAxis, sIndex, cIndex] = calibrate(1); %do calibrate(1) to debug
+type = 'deuteranopia';
+
+% customization based on severity of CVD: an experiment
+maxSIndex = 1;
+switch type
+    % values taken from "Quantitative Scoring of Color-Vision Panel Tests"
+    case 'protanopia'
+        maxSIndex = 6.12;
+    case 'deuteranopia'
+        maxSIndex = 4.82;
+    case 'tritanopia'
+        maxSIndex = 4.74;
+end
+
+cIndex
+calib.severity = 1.0;
+calib.severity = sIndex/6.12;
 
 % Get recoloring
 imgRGB = imread(imgPath);
 % convert RGB range (0-255) to (0-1)
 imgRGB = im2double(imgRGB);
-[~, corRGB] = getRecolor(imgRGB, type);
+[~, corRGB] = getRecolor(imgRGB, type, calib);
 
 % Display images
 Fig = figure;

@@ -11,7 +11,7 @@
 % corRGB: the corrected image
 %
 % Authors: Dorothy Chen and Carolyn Chen
-function [rot, corRGB] = getRecolor(imgRGB, type)
+function [rot, corRGB] = getRecolor(imgRGB, type, calib)
 %% Represent colors using Gaussian Mixture Model (GMM)
 % translate RGB to L*a*b* 
 rgb2lab = makecform('srgb2lab');
@@ -149,7 +149,11 @@ for j = 1:dim(1)
     for i = 1:numComponents
         hj = hj +  P(j, i)*differenceMus(i);
     end
-    H(j) = hj;
+    %H(j) = hj;
+    
+    % TESTING TESTING TESTING
+    H(j) = H(j)*(1.0-calib.severity) + hj*(calib.severity);
+    
 end
 
 % return to RGB space
