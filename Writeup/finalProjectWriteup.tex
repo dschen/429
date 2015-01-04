@@ -6,8 +6,10 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{caption}
+\usepackage{subcaption}
 
-\usepackage[breaklinks=true,bookmarks=false]{hyperref}
+\usepackage[breaklinks=true,bookmarks=false, colorlinks=true]{hyperref}
 
 \cvprfinalcopy % *** Uncomment this line for the final submission
 
@@ -48,8 +50,15 @@ Princeton, NJ\\
 	Genetic photoreceptor disorders are the most common cause of CVD, manifesting in 8\% of Caucasian males, 5\% of Asiatic males, and 3\% of African-American and Native-American males [3]. With this and the female subset being a substantial portion of the population, it is necessary, in our rapidly growing image-based society, to provide an algorithm that can re-color images to make them more accessible to people with CVD. Without such assistive technology, details that are easily seen by people with normal color vision may be completely overlooked by people with CVD due to differences in color perception (see figure \ref{fig:grapes}). Fortunately, there has been some extensive research on color blindness and re-colorization that work towards reducing such differences in perception. While there is clearly no way to eliminate all differences in perception, these methods have been successful in preserving the semantic information of images between people of different color acuity. We therefore aggregate a few existing techniques in our implementation to serve as a proof of concept as well as a new user-specific system by which images are re-colored.
 
 \begin{figure}[h]
-  \includegraphics[width=0.22\textwidth]{grapes1.png}
-  \includegraphics[width=0.22\textwidth]{grapes2.png}
+  \centering
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{grapes1.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{grapes2.png}
+    \caption{}
+  \end{subfigure}
   \caption{(a) is with regular vision; (b) is a simulation of a person with CVD's view}
   \label{fig:grapes}
 \end{figure}
@@ -57,8 +66,15 @@ Princeton, NJ\\
 Normal color vision eyes contain three fundamental photoreceptor cells. These cells, also known as cone cells, are concentrated in the retina near the blind spot, where they are able to absorb the most light. Each type of cone cell has a different spectral response, where the peak sensitivity regions lie in the long (L), middle (M), and short (S) wavelengths [1]. A genetic CVD will cause either a defect or an absence in these cells. Dichromatic colorblindness, which we focus our work on, occurs when one of these cells is absent [2]. The different types of dichromats are protanopes, deuteranopes, and tritanopes, where the L, M, and S cones are missing (respectively). This essentially reduces the color gamut of the dichromate into two-dimensions, as shown in figure \ref{fig:gamut}.  
 
 \begin{figure}[h]
-  \includegraphics[width=0.22\textwidth]{gamut1.png}
-  \includegraphics[width=0.22\textwidth]{gamut2.png}
+  \centering
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{gamut1.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{gamut2.png}
+    \caption{}
+  \end{subfigure}
   \caption{(a) LMS representation with regular vision; (b) LMS under simulation of a deuteranope; Source: use getLMSVisualization.m to visualize an image in LMS space. Note the reduction in space}
   \label{fig:gamut}
 \end{figure}
@@ -88,14 +104,21 @@ As discussed in Section 1, we used the algorithm described in [5] to quantify th
 The calibration step involves a simple user interface, where the algorithm randomly scatters the different 15 panels at the beginning, thus forcing the user to order the panels relative to the static blue panel on the left (please refer to the readMe file for instructions to execute quickly without this input step). To submit the response, exit out of the window.
 
 \begin{figure}[h]
-  \includegraphics[width=0.5\textwidth]{panel.png}
+  \centering
+  \includegraphics[width=0.45\textwidth]{panel.png}
   \caption{The user interface for calibration}
   \label{fig:panel}
 \end{figure}
 
 \begin{figure}[h]
-  \includegraphics[width=0.22\textwidth]{luv1.png}
-  \includegraphics[width=0.22\textwidth]{luv2.png}
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{luv1.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{luv2.png}
+    \caption{}
+  \end{subfigure}
   \caption{(a) D-15 ordering of panels for normal vision; (b) ordering for a protanope; Source: [5]. the cross-over in the protanope's ordering}
   \label{fig:luv}
 \end{figure}
@@ -103,7 +126,7 @@ The calibration step involves a simple user interface, where the algorithm rando
 The different panels, shown in figure \ref{fig:panel}, can be mapped to a two-dimensional U*V* plane of the 1976 CIELUV color space, since lightness is held constant among them. This makes for a nice and flat mapping of the ordering of the panels (figure \ref{fig:luv}), where CVDs can be distinguished when orderings cross certain boundaries that distinguish that respective CVD’s confusion locus. What the authors of [5] propose is a way to quantify this ordering by using the color difference vectors between the 15 (or 16 including the starting point) caps.  They then take these vectors to create relative color difference vectors, as shown in figure \ref{fig:compass}, where the length of each vector represents the difference in chroma and the angle represents the difference in hue angle (subsequent of the mapping between U*V*L and LCHuv space) of adjacently placed panels.  
 
 \begin{figure}[h]
-  \includegraphics[width=0.5\textwidth]{compass.png}
+  \includegraphics[width=0.45\textwidth]{compass.png}
   \caption{Relative color difference vectors to compute the moment of inertia}
   \label{fig:compass}
 \end{figure}
@@ -133,7 +156,7 @@ As mentioned in Section 1, we implement the algorithm described in [2]. Here, we
 
 We first convert the input RGB values to CIE L*a*b* color space, which is capable of describing all colors visible to the human eye and is often used as a device-independent reference. L* refers to the lightness of the color; a* is the position between green and red; and b* is the position between blue and yellow. A further benefit to representing colors in the L*a*b* color space is that perceptual differences between colors can be approximated by finding the Euclidean distance between points. 
 
-We then model the pixels using a Gaussian Mixture Model (GMM), which approximates the distribution of the points as a mixture of $K$ Gaussians. While this can be done using the Matlab function \texttt{gmdistribution.fit}, we have included the general steps for completeness. Our set of parameters for a mixture of $K$ Gaussians is therefore $\theta_i = (\mu_i, \Sigma_i)$ for each of the $K$ distributions, as well as $\omega_1, ..., \omega_k$, which are the mixing weights for the Gaussians. As in [2], we shall represent these parameters as $\Theta$. The GMM can be found using the expectation-maximization (EM) algorithm, which is described in [2] as follows: 
+We then model the pixels using a Gaussian Mixture Model (GMM), which approximates the distribution of the points as a mixture of $K$ Gaussians. While this can be done using the Matlab function \texttt{gmdistribution.fit} [6], we have included the general steps for completeness. Our set of parameters for a mixture of $K$ Gaussians is therefore $\theta_i = (\mu_i, \Sigma_i)$ for each of the $K$ distributions, as well as $\omega_1, ..., \omega_k$, which are the mixing weights for the Gaussians. As in [2], we shall represent these parameters as $\Theta$. The GMM can be found using the expectation-maximization (EM) algorithm, which is described in [2] as follows: 
 
 Expectation step: Given the parameter set $\Theta^{old}$, the probability that pixel $x_j$ belongs to the $i^{th}$ Gaussian is:
 \[
@@ -143,9 +166,9 @@ where $G_i(x_j | \theta_i)$ is the probability of $x_j$ given a 3D Gaussian dist
 
 Maximization step: This step updates the values for $\omega_i$, $\mu_i$, and $\Sigma_i$ using the probabilities found in the expectation step. $\omega_i^{new}$ is just a re-weighting, where Gaussians with more probable points weighted accordingly; $\mu_i^{new}$ is a weighted average for each Gaussian; $\Sigma_i^{new}$ is a normalized, weighted covariance. 
 
-As noted in [2], full covariance matrices are possible. However, using diagonal matrices is a more preferable approach. First, as noted in Matlab documentation online, restricting covariance matrices to diagonal helps prevent ill-conditioned or singular (has no inverse) covariance matrices. Second, this allows for easy inversion of the covariance matrices, which is a necessary step during the calculation of symmetric KL divergence, our way of measuring target distance. 
+As noted in [2], full covariance matrices are possible. However, using diagonal matrices is a more preferable approach. First, as noted in Matlab documentation online, restricting covariance matrices to diagonal helps prevent ill-conditioned or singular (has no inverse) covariance matrices [6]. Second, this allows for easy inversion of the covariance matrices, which is a necessary step during the calculation of symmetric KL divergence, our way of measuring target distance. 
 
-To find the best fitting GMM, we fit several models and choose the one with the smallest Akaike information criterion (AIC), which is measure of both goodness-of-fit and of complexity of a model. As suggested in [2], we generally used values of $2 <= K <= 6$. However, we used values of $K$ as large as 12 to see if allowing more complex models would give better results; we decided that the increase in runtime was not worth the increase in performance. See \ref{fig:peppers} for an example. 
+To find the best fitting GMM, we fit several models and choose the one with the smallest Akaike information criterion (AIC), which is measure of both goodness-of-fit and of complexity of a model. As suggested in [2], we generally used values of $2 <= K <= 6$. However, we used values of $K$ as large as 12 to see if allowing more complex models would give better results; we decided that the increase in runtime was not worth the increase in performance. See figure \ref{fig:peppers} for an example. 
 
 %-------------------------------------------------------------------------
 \subsubsection{Target Distance}
@@ -188,14 +211,21 @@ We minimized this using \texttt{lsqnonlin} and the Levenberg-Marquardt algorithm
 \subsubsection{Gaussian Mapping for Interpolation}
 
 The CIELAB space, similar to the CIELUV space, can be mapped to cylindrical coordinates corresponding to lightness, chroma, and hue values (LCH). Because the optimized mapping was simply a rotation in the a*b* plane, as described in the previous steps, the L and C value subsequently remain constant while only the hue angle changes. To calculate the new hue value for each pixel, we first find the difference $M(\mu) -– \mu$ where M is the mapping rotation, meaning we find the hue shift of each Gaussian cluster. Then, depending on the likelihood of a pixel $x_j$ belonging to the ith Gaussian $p(i|x_j, \theta)$, we calculate the new hue value, 
-$
-T(x_j)^{H} = x_j^{H} + \sum\limits_{i=1}^K p(i|x_j, \theta)(M_i(\mu_i)^{H}-(\mu_i)^{H})
-$,
+\[
+  T(x_j)^{H} = x_j^{H} + \sum\limits_{i=1}^K p(i|x_j, \theta)(M_i(\mu_i)^{H}-(\mu_i)^{H})
+\]
 which takes into account all the shifts and the posterior probability of the pixel.  Thus, this accounts for a smooth re-coloring, or interpolation, for the adjusted image. 
 
 \begin{figure}[h]
-  \includegraphics[width=0.22\textwidth]{zen1.png}
-  \includegraphics[width=0.22\textwidth]{zen2.png}
+  \centering
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{zen1.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{zen2.png}
+    \caption{}
+  \end{subfigure}
   \caption{(a) Original image; (b) Re-colored image for a tritanope}
   \label{fig:zen}
 \end{figure}
@@ -205,8 +235,15 @@ While the algorithm did not leave room for calibration parameters other than the
 Based off of the calibration paper [5], there are approximate values of the C-index that correspond to the different CVD conditions. Thus, in runMe.m, we find the ratio of the retrieved C-index to the known C-index, depending on type. This ratio, upper-capped at one, will determine how we interpolate between the recolored image and the original image: $H(j) = H(j)(1.0-calib.severity) + h_j(calib.severity)$where $H$ is hue and $h_j$ is the recolored hue. *Note, this is not based off of any scientific evidence, as we were unable to access any. The only source that performed an interpolation as well depending on a user parameter was from a Stanford website vischeck that has since closed down. However, we think it is interesting to demonstrate how a user based parameter can affect the outcome, as seen in the following figures. 
 
 \begin{figure}[h]
-  \includegraphics[width=0.22\textwidth]{sev1.png}
-  \includegraphics[width=0.24\textwidth]{sev2.png}
+  \centering
+  \begin{subfigure}{0.22\textwidth}
+    \includegraphics[width=\textwidth]{sev1.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.24\textwidth}
+    \includegraphics[width=\textwidth]{sev2.png}
+    \caption{}
+  \end{subfigure}
   \caption{(a) Corrected image for a protanope of severity 1.0; (b) Corrected image for severity 0.5; Note the difference in the brightness of color, where in (a), the contrast between the grass and the yellow flowers is much more accentuated}
   \label{fig:sev}
 \end{figure}
@@ -225,7 +262,7 @@ We implemented the simulation algorithm described in the prevalently cited paper
 (2) 	Apply the simulation algorithm. Because we are given the maximum limits of the RGB channels in LMS space, we can define a parallelepiped in LMS space that defines all the colors that can be produced by the specific monitor (see figure \ref{fig:para} for a nice illustration).  Within this space, depending on the type of colorblindness, is the parallelogram that defines the reduced stimuli surface, since, as we recall, dichromacy occurs when one of the LMS cones is lacking. To map a normal pixel to a simulated pixel, the algorithm projects that value to its corresponding position on the reduced stimuli surface. 
 
 \begin{figure}[h]
-  \includegraphics[width=0.5\textwidth]{para.png}
+  \includegraphics[width=0.45\textwidth]{para.png}
   \caption{Reduced stimuli surface for a protanope; Source: [1]}
   \label{fig:para}
 \end{figure}
@@ -241,20 +278,46 @@ It was difficult to find a sufficient number of subjects to test our program on 
 Below are results that demonstrate the “success” of the algorithm introduced by [2]. Here we can clearly see the improvement in the Isihara plate, where without the color-correction, the number is invisible to the viewer. Testing on natural images, we can see there is an improvement there as well. In the image of the fruit vendor, the simulated original image appears to be selling one long pile of oranges behind the bananas. However, in the re-colored image, the algorithm illuminates the different piles so the viewer can see there are actually three different piles of fruit. 
 
 \begin{figure}[h]
-  \includegraphics[width=0.23\textwidth]{isihara1.png}
-  \includegraphics[width=0.23\textwidth]{isihara2.png}
-  \includegraphics[width=0.23\textwidth]{isihara3.png}
-  \includegraphics[width=0.23\textwidth]{isihara4.png}
-  \caption{(top-left) Original image; (top-right) Original image, protanope view; (bottom-left) Corrected image; (bottom-right) Corrected image, protanope view, 7 now visible}
+  \centering
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{isihara1.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{isihara2.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{isihara3.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{isihara4.png}
+    \caption{}
+  \end{subfigure}
+  \caption{(a) Original image; (b) Original image, protanope view; (c) Corrected image; (d) Corrected image, protanope view, 7 now visible}
   \label{fig:isihara}
 \end{figure}
 
 \begin{figure}[h]
-  \includegraphics[width=0.23\textwidth]{fruits1.png}
-  \includegraphics[width=0.23\textwidth]{fruits3.png}
-  \includegraphics[width=0.23\textwidth]{fruits2.png}
-  \includegraphics[width=0.23\textwidth]{fruits4.png}
-  \caption{(top-left) Original image; (top-right) Original image, deuteranope view; (bottom-left) Corrected image; (bottom-right) Corrected image, protanope view, three piles now visible}
+  \centering
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{fruits1.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{fruits2.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{fruits3.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{fruits4.png}
+    \caption{}
+  \end{subfigure}
+  \caption{(a) Original image; (b) Original image, deuteranope view; (c) Corrected image; (d) Corrected image, protanope view, three piles now visible}
   \label{fig:fruits}
 \end{figure}
 
@@ -263,21 +326,47 @@ An interesting result from our implementation was the re-colored version of the 
 There are various solutions to this issue, none of which are clearly better than the others. The first is to change the initialization during optimization. While we tried this, we were unable to find one that performed better than what we currently have. The second is to run the optimization multiple times with various initializations, but the increase in runtime may be prohibitive. This is especially true since our colors are essentially the same as the paper's in this case, just flipped, which means that the increase in performance may not always be substantial. There are other ways to deal with getting stuck in local minima, such as simulated annealing and random restarts, but we didn't have time to implement these. Again, however, these methods are often extremely costly time-wise. 
 
 \begin{figure}[h]
-  \includegraphics[width=0.23\textwidth]{flower1.png}
-  \includegraphics[width=0.23\textwidth]{flower2.png}
-  \includegraphics[width=0.23\textwidth]{flower3.png}
-  \includegraphics[width=0.23\textwidth]{flower4.png}
-  \caption{(top-left) Original image; (top-right) Original image, deuteranope view; (bottom-left) Simulated corrected image ([2]); (bottom-right) SImulated corrected image (ours)}
+  \centering
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{flower1.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{flower2.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{flower3.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{flower4.png}
+    \caption{}
+  \end{subfigure}
+  \caption{(a) Original image; (b) Original image, deuteranope view; (c) Simulated corrected image ([2]); (d) SImulated corrected image (ours)}
   \label{fig:flower}
 \end{figure}
 
 	After implementing the algorithm, we see obvious practical problems with it. For one, it is non-deterministic, as the paper admits that it needs to be performed several times, taking the solution with the least error, to find the best re-colorization. This problem is due to the optimization possibly getting stuck in local minima. As noted above, there are several approaches that we could take to tackle this issue. Furthermore, if there were more time, it would have been interesting to compare the results of another re-colorization algorithm, such as in (Khun), that claims to preserve the “naturalness” of the image. Here, we see, as in the garden image, that results can sometimes seem very unnatural. 
 
 \begin{figure}[h]
-  \includegraphics[width=0.23\textwidth]{peppers2.png}
-  \includegraphics[width=0.23\textwidth]{peppers_original_sim.png}
-  \includegraphics[width=0.23\textwidth]{peppers.png}
-  \includegraphics[width=0.23\textwidth]{peppers_12.png}
+  \centering
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{peppers2.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{peppers_original_sim.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{peppers.png}
+    \caption{}
+  \end{subfigure}
+  \begin{subfigure}{0.23\textwidth}
+    \includegraphics[width=\textwidth]{peppers_12.png}
+    \caption{}
+  \end{subfigure}
   \caption{(a) Original image; (b) Simulation of the original image, protanopic; (c) Simulation of corrected image, protanopic, using $K=6$ when fitting a GMM; note some of the unnaturalness (d) Simulation of corrected image, protanopic, using $K=12$ when fitting a GMM; note the lessened unnaturalness}
   \label{fig:peppers}
 \end{figure}
@@ -311,6 +400,8 @@ Appearance for Dichromats." Journal of the Optical Society of America A 14.10 (1
 [4] Kuhn, Giovane R., Manuel M. Oliveira, and Leandro A. Fernandes. "An Efficient Naturalness-Preserving Image-Recoloring Method for Dichromats." IEEE (2008).
 
 [5] Vingrys, Algis J., and P.Ewen King-Smith. "A Quantitative Scoring Technique For Panel Tests of Color Vision." Investigative Ophthalmology \& Visual Science 29.1 (1988): 50-63. 
+
+[6] Matlab documentation for gmdistribution. Retrieved from ``http://www.mathworks.com/help/stats/gmdistribution-class.html''
 
 }
 
