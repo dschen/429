@@ -220,18 +220,20 @@ end
 delta = 10; % wiggle room
 
 confusionAxis = rad2deg(minorA);
-confusionAxis
-if (confusionAxis < 62+delta && confusionAxis > 62-delta)
+
+% note, these are all approximations based on the paper. Some ranges
+% were not covered, so we will use the severity factor to account for the
+% image adjustments. 
+if (confusionAxis < 62+delta && confusionAxis > 62-2*delta)
     type = 'normal';
-elseif (confusionAxis < 9.7+delta && confusionAxis > 9.7-delta ...
-        && confusionAxis > 0)
+elseif (confusionAxis > 9.7-delta && confusionAxis > 0)
     type = 'protanopia';
-elseif (confusionAxis < -8.8+delta && confusionAxis > -8.8-delta)
+elseif (confusionAxis < -8.8+delta && confusionAxis > -40) % approx. halfway
     type = 'deuteranopia';
-elseif (confusionAxis < -86.8+delta && confusionAxis > -86.8-delta)
+elseif (confusionAxis < -40 && confusionAxis > -86.8-delta)
     type = 'tritanopia';
 else
-    type = 'normal'; % default...?
+    type = 'normal'; % default
 end
 
 fprintf('Your type is %s\n', type);
