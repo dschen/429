@@ -82,6 +82,7 @@ Normal color vision eyes contain three fundamental photoreceptor cells. These ce
 	Because there are three different types of dichromatic conditions, we calibrate the user in the beginning of our color-correction tool through an implementation of a technique described in [5]. There are several different ways to determine color-blindness, including the widely used Isihara plates (figure \ref{fig:plate}). However, a more useful diagnostic test, which is used in [5], is the Fansworth Dichotomous test, or the D-15 panel test. The D-15 consists of 15 panels of different colors, all chosen to have the same lightness value, that need to be arranged in order in relation to one static panel. This method has proved to be more effective for scientific research because its results can be quantitatively scored, whereas the Isihara test is simply diagnostic [5]. Because [5] was cited by several papers, we decided to use their method to calibrate our users. Furthermore, not only does it diagnose, but it also provides a way to quantify useful parameters such as the Confusion index, which reveals the severity of colorblindness, and the Selectivity index, which indicates the degree of randomness in the user’s arrangement. These parameters could potentially be used to make our algorithm even more person-specific. 
 
 \begin{figure}[h]
+  \centering
   \includegraphics[width=0.4\textwidth]{plate.png}
   \caption{An Isihara plate, used to diagnose different conditions of CVD}
   \label{fig:plate}
@@ -111,6 +112,7 @@ The calibration step involves a simple user interface, where the algorithm rando
 \end{figure}
 
 \begin{figure}[h]
+  \centering
   \begin{subfigure}{0.22\textwidth}
     \includegraphics[width=\textwidth]{luv1.png}
     \caption{}
@@ -126,6 +128,7 @@ The calibration step involves a simple user interface, where the algorithm rando
 The different panels, shown in figure \ref{fig:panel}, can be mapped to a two-dimensional U*V* plane of the 1976 CIELUV color space, since lightness is held constant among them. This makes for a nice and flat mapping of the ordering of the panels (figure \ref{fig:luv}), where CVDs can be distinguished when orderings cross certain boundaries that distinguish that respective CVD’s confusion locus. What the authors of [5] propose is a way to quantify this ordering by using the color difference vectors between the 15 (or 16 including the starting point) caps.  They then take these vectors to create relative color difference vectors, as shown in figure \ref{fig:compass}, where the length of each vector represents the difference in chroma and the angle represents the difference in hue angle (subsequent of the mapping between U*V*L and LCHuv space) of adjacently placed panels.  
 
 \begin{figure}[h]
+  \centering
   \includegraphics[width=0.45\textwidth]{compass.png}
   \caption{Relative color difference vectors to compute the moment of inertia}
   \label{fig:compass}
@@ -273,9 +276,13 @@ Depending on the position of the current pixel with respect to the neutral axis 
 %------------------------------------------------------------------------
 \section{Results and Evaluation}
 
-It was difficult to find a sufficient number of subjects to test our program on to make any significant claims on its success. However, as many of our sources used as well for their evaluation metrics [2-4], we evaluated the “success” of the implementation based on a comparison between the simulated views of the original image and the re-colored image. Through this qualitative sketch, an image would be perceived as a “success” if, between the two simulated images, the re-colored image contained more information regarding color contrast versus the original image. Another possible way to evaluate the results, quantifiably, would be to use the Gaussian Mixture Modeling approach used in the re-colorization step to detect key colors in both the simulation of the original and the simulation of the re-colored. If the ratio between the re-colored and the original is greater than 1, then that means that there was a gain in information.  ADD STUFF HERE IF ACTUALLY DO IT
+It was difficult to find a sufficient number of subjects to test our program on to make any significant claims on its success. However, as many of our sources used as well for their evaluation metrics [2-4], we evaluated the ``success'' of the implementation based on a comparison between the simulated views of the original image and the re-colored image. Through this qualitative sketch, an image would be perceived as a ``success'' if, between the two simulated images, the re-colored image contained more information regarding color contrast versus the original image. 
 
-Below are results that demonstrate the “success” of the algorithm introduced by [2]. Here we can clearly see the improvement in the Isihara plate, where without the color-correction, the number is invisible to the viewer. Testing on natural images, we can see there is an improvement there as well. In the image of the fruit vendor, the simulated original image appears to be selling one long pile of oranges behind the bananas. However, in the re-colored image, the algorithm illuminates the different piles so the viewer can see there are actually three different piles of fruit. 
+A possible way to quantify this would be to identify trouble areas that clearly have different colors to a person with normal vision but whose contrast disappears when viewed by a person with CVD. For example, in figure \ref{fig:flower}, the trouble areas would be the flower and the leaves. We could then convert the image to CIE L*a*b* color space and approximate the perceptual difference between the two areas by finding the Euclidean distance. We can reasonably assume that the difference will be very small when viewing the original image, or else the trouble areas would not be identified as so in the first place. The recoloring would be considered a success if the perceptual difference afterward is greater than some threshold.
+
+Another possible way to evaluate the results, quantifiably, would be to use the Gaussian Mixture Modeling approach used in the re-colorization step to detect key colors in both the simulation of the original and the simulation of the re-colored. If the ratio between the re-colored and the original is greater than 1, then that means that there was a gain in information because there are more key colors. However, when we implemented this metric (\texttt{evaluation.m}), we found that the two GMMs always had the same number of clusters: as many as possible. It appears that--at least with the values of $K$ we are working with here--the increased accuracy that results from having more clusters is enough to offset the increased complexity, as both of these criteria are reflected in the AIC (which is used to determine which model is best). Consequently, we could not use this metric to evaluate the performance of our algorithm. 
+
+Below are results that demonstrate the ``success'' of the algorithm introduced by [2]. Here we can clearly see the improvement in the Ishihara plate, where without the color-correction, the number is invisible to the viewer. Testing on natural images, we can see there is an improvement there as well. In the image of the fruit vendor, the simulated original image appears to be selling one long pile of oranges behind the bananas. However, in the re-colored image, the algorithm illuminates the different piles so the viewer can see there are actually three different piles of fruit. 
 
 \begin{figure}[h]
   \centering
@@ -296,7 +303,7 @@ Below are results that demonstrate the “success” of the algorithm introduced
     \caption{}
   \end{subfigure}
   \caption{(a) Original image; (b) Original image, protanope view; (c) Corrected image; (d) Corrected image, protanope view, 7 now visible}
-  \label{fig:isihara}
+  \label{fig:ishihara}
 \end{figure}
 
 \begin{figure}[h]
