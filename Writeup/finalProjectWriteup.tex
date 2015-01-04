@@ -75,9 +75,6 @@ Normal color vision eyes contain three fundamental photoreceptor cells. These ce
 
 	We finish our implementation with an algorithm to simulate color-blindness by following the method described in [1], a paper that is widely cited by works related to this topic. This method makes use of the LMS color space to perform the mapping of colors from the original image to the perceived image. Thus, the algorithm consists of mapping the image to LMS space, mapping the “physiologically undetermined components,” referring to the information marked by the missing cone, to the reduced stimuli surface, and mapping this reduction back to the RGB space. It has been proven to be rather effective in simulating CVD, since people with colorblindness cannot distinguish between the original image and the simulation. We use this algorithm for two purposes: 1) a step in the optimization of the algorithm described in [2] relies on a comparison between a simulation of CVD and the original image, and 2) to serve as a tool for evaluation of this project. 
 
-
-
-
 %------------------------------------------------------------------------
 \section{Implementation}
 
@@ -103,7 +100,7 @@ The calibration step involves a simple user interface, where the algorithm rando
   \label{fig:luv}
 \end{figure}
 
-The different panels, show in figure \ref{fig:panel}, can be mapped to a two-dimensional U*V* plane of the 1976 CIELUV color space, since lightness is held constant among them. This makes for a nice and flat mapping of the ordering of the panels (figure \ref{fig:luv}), where CVDs can be distinguished when orderings cross certain boundaries that distinguish that respective CVD’s confusion locus. What the authors of [5] propose is a way to quantify this ordering by using the color difference vectors between the 15 (or 16 including the starting point) caps.  They then take these vectors to create relative color difference vectors, as shown in figure \ref{fig:compass}, where the length of each vector represents the difference in chroma and the angle represents the difference in hue angle (subsequent of the mapping between U*V*L and LCHuv space) of adjacently placed panels.  
+The different panels, shown in figure \ref{fig:panel}, can be mapped to a two-dimensional U*V* plane of the 1976 CIELUV color space, since lightness is held constant among them. This makes for a nice and flat mapping of the ordering of the panels (figure \ref{fig:luv}), where CVDs can be distinguished when orderings cross certain boundaries that distinguish that respective CVD’s confusion locus. What the authors of [5] propose is a way to quantify this ordering by using the color difference vectors between the 15 (or 16 including the starting point) caps.  They then take these vectors to create relative color difference vectors, as shown in figure \ref{fig:compass}, where the length of each vector represents the difference in chroma and the angle represents the difference in hue angle (subsequent of the mapping between U*V*L and LCHuv space) of adjacently placed panels.  
 
 \begin{figure}[h]
   \includegraphics[width=0.5\textwidth]{compass.png}
@@ -114,18 +111,17 @@ The different panels, show in figure \ref{fig:panel}, can be mapped to a two-dim
 To analyze this data quantifiably, the authors term their approach the Moment of Inertia Method, where each head of the vector has unit mass and the stem is weightless. The method calls to solve for the principal axes of the system that result in the maximum and minimum moments of inertia of the relative difference vectors. This is done by setting the derivative of the inertia with respect to the axis angle to 0, yielding the equation: 
 
 \begin{equation}\label{inertia1}
-\tan(2A) = \sum 2U_nV_n / \sum (U_n^{2} - V_n^{2})
+  \tan(2A) = \sum 2U_nV_n / \sum (U_n^{2} - V_n^{2})
 \end{equation}
 
 Then, to find the angle of the other axes, it is simply a matter of finding the right angle to A. 
 Finally, to find the corresponding moments of inertia, we plug the angles in the following equation:
 
 \begin{equation}\label{inertia2}
-I = \sum (V_n\cos(A) - U_n\sin(A))^{2}
+  I = \sum (V_n\cos(A) - U_n\sin(A))^{2}
 \end{equation}
 
 The confusion angle, which allows for a quantitative mapping to the type of CVD, corresponds to the angle that yields the minimum moment of inertia. We used comparison statements based off of Table 1 in the paper, which contained relevant recommended values for each case of dichromacy, to serve as our “diagnosis” for the type of CVD. Furthermore, our code calibrate.m returns other useful parameters such as the Confusion index, calculated by dividing the radius of the major axis by the radius of the smaller axis. This indicates the severity of the colorblindness condition, since theoretically a CVD panel arrangement would consist of several crossings, resulting in large vector lengths in very narrow angle ranges. We further calculate the Selectivity index by dividing the major radius by the major radius of a perfect arrangement, which reveals information about the randomness of the arrangement. These extra parameters may serve to be useful to further customize the user’s experience towards their own unique level of CVD, as we will discuss in section 2.2.d: Gaussian Mapping for Interpolation. 
-
 
 %-------------------------------------------------------------------------
 \subsection{Re-Colorization}
@@ -135,16 +131,63 @@ As mentioned in Section 1, we implement the algorithm described in [2]. Here, we
 %-------------------------------------------------------------------------
 \subsubsection{Image Representation via Gaussian Mixture Modeling}
 
+We first convert the input RGB values to CIE L*a*b* color space, which is capable of describing all colors visible to the human eye and is often used as a device-independent reference. L* refers to the lightness of the color; a* is the position between green and red; and b* is the position between blue and yellow. A further benefit to representing colors in the L*a*b* color space is that perceptual differences between colors can be approximated by finding the Euclidean distance between points. 
+
+We then model the pixels using a Gaussian Mixture Model (GMM), which approximates the distribution of the points as a mixture of $K$ Gaussians. While this can be done using the Matlab function \texttt{gmdistribution.fit}, we have included the general steps for completeness. Our set of parameters for a mixture of $K$ Gaussians is therefore $\theta_i = (\mu_i, \Sigma_i)$ for each of the $K$ distributions, as well as $\omega_1, ..., \omega_k$, which are the mixing weights for the Gaussians. As in [2], we shall represent these parameters as $\Theta$. The GMM can be found using the expectation-maximization (EM) algorithm, which is described in [2] as follows: 
+
+Expectation step: Given the parameter set $\Theta^{old}$, the probability that pixel $x_j$ belongs to the $i^{th}$ Gaussian is:
+\[
+  p(i | x_j, \Theta^{old}) = \frac{\omega_i G_i(x_j | \theta_i)}{\sum_{a=1}^K \omega_a G_a(x_j | \theta_a)}
+\]
+where $G_i(x_j | \theta_i)$ is the probability of $x_j$ given a 3D Gaussian distribution $G_i$ with parameters $\theta_i = (\mu_i, \Sigma_i)$. Therefore, the above expression is the normalized probability that $x_j$ will occur in the $i^{th}$ Gaussian, which is what we are looking for. 
+
+Maximization step: This step updates the values for $\omega_i$, $\mu_i$, and $\Sigma_i$ using the probabilities found in the expectation step. $\omega_i^{new}$ is just a re-weighting, where Gaussians with more probable points weighted accordingly; $\mu_i^{new}$ is a weighted average for each Gaussian; $\Sigma_i^{new}$ is a normalized, weighted covariance. 
+
+As noted in [2], full covariance matrices are possible. However, using diagonal matrices is a more preferable approach. First, as noted in Matlab documentation online, restricting covariance matrices to diagonal helps prevent ill-conditioned or singular (has no inverse) covariance matrices. Second, this allows for easy inversion of the covariance matrices, which is a necessary step during the calculation of symmetric KL divergence, our way of measuring target distance. 
+
+To find the best fitting GMM, we fit several models and choose the one with the smallest Akaike information criterion (AIC), which is measure of both goodness-of-fit and of complexity of a model. As suggested in [2], we generally used values of $2 <= K <= 6$. However, we used values of $K$ as large as 12 to see if allowing more complex models would give better results; we decided that the increase in runtime was not worth the increase in performance. See \ref{fig:peppers} for an example. 
+
 %-------------------------------------------------------------------------
 \subsubsection{Target Distance}
+As mentioned earlier, differences in perception can be approximated in the CIE L*a*b* color space by finding the Euclidean distance between points. Seeing that we have clustered our points using Gaussian distributions, however, the Euclidean distance is no longer a completely informative measure. This is because while we could find the Euclidean distances between means, doing so would ignore the variances of the Gaussians. [2] overcomes this problem by measuring distance using symmetric KL divergence, which is a measure of difference between distributions rather than single points. The symmetric KL divergence can be found as follows:
+
+\begin{align*}
+  D_{sKL}(G_i, G_j) = &(\mu_i - \mu_j)^T (\Sigma_i^{-1} + \Sigma_j^{-1}) (\mu_i - \mu_j) \\
+  &+ tr(\Sigma_i \Sigma_j^{-1} + \Sigma_i^{-1} \Sigma_j - 2I)
+\end{align*}
+where $tr()$ is the trace and $I$ is the 3x3 identity matrix. 
 
 %-------------------------------------------------------------------------
 \subsubsection{Solving the Optimization}
+We want to find a recoloring of the image such that the contrasts perceived by people with normal vision in the original are the same as the contrasts perceived by people with CVD in the recoloring. In other words, we calculate the symmetric KL divergence for each pair of Gaussians in the original, and we want these values to be as similar as possible to the symmetric KL divergences for each pair of the recolored Gaussians. 
+
+To perform the recoloring, we define $K$ mapping functions $M_i(), ..., M_K()$ for each Gaussian that relocates the mean vector; as in [2], we assume that the covariance matrices are unchanged. We also want to avoid extremely drastic changes in the image, and so we do not change the lightness of the image. In the same vein, we define the mapping functions as rotations in the a*b* plane; this preserves the magnitudes of the colors. 
+
+As mentioned earlier, we want to find a mapping such that the symmetric KL divergences of the recolored image are as similar as possible to those of the original. In other words, the error between Gaussians $i$ and $j$ can be found as follows: 
+\[
+  E_{ij} = [D_{sKL}(G_i, G_j) - D_{sKL}(F_i, F_j)]^2
+\]
+where $F_a = Sim(M_a(G_a))$, or, in other words, the simulated view of the rotated Gaussian. Because some colors are affected by CVD more than others, we weight the errors. To do so, we first find the weights of individual pixels, which is just the Euclidean distance between the original and the simulated images. Recall that this is a good approximation of perceptual differences due to the fact that both images are in CIE L*a*b* color space: 
+\[
+  \alpha_j = \| x_j - Sim(x_j) \|
+\]
+We then combine these and normalize to find the weights of the clusters:
+\[
+  \lambda_i = \frac{\sum_{j=1}^N \alpha_j p(i | x_j, \Theta)}{\sum_{i=1}^K \sum_{j=1}^N \alpha_j p(i | x_j, \Theta)}
+\]
+where $N$ is the number of pixels in the image. 
+
+Therefore, our objective function is a weighted sum of the error terms we found before:
+\[
+  \zeta = \sum_{i=1}^K \sum_{j=i+1}^K (\lambda_i + \lambda_j) E_{ij}
+\]
+
+We minimized this using \texttt{lsqnonlin} and the Levenberg-Marquardt algorithm. 
 
 %-------------------------------------------------------------------------
 \subsubsection{Gaussian Mapping for Interpolation}
 
-The CIELAB space, similar to the CIELUV space, can be mapped to cylindrical coordinates corresponding to lightness, chroma, and hue values (LCH). Because the optimized mapping was simply a rotation in the a*b* plane, as described in the previous steps, the L and C value subsequently remain constant while only the hue angle changes. To calculate the new hue value for each pixel, we first find the difference $M(\mu) -– \mu$ where M is the mapping rotation, meaning we find the hue shift of each Gaussian cluster. Then, depending on the likelihood of a pixel $x_j$ belonging to the ith Gaussian $P(x_j, i)$, we calculate the new hue value, 
+The CIELAB space, similar to the CIELUV space, can be mapped to cylindrical coordinates corresponding to lightness, chroma, and hue values (LCH). Because the optimized mapping was simply a rotation in the a*b* plane, as described in the previous steps, the L and C value subsequently remain constant while only the hue angle changes. To calculate the new hue value for each pixel, we first find the difference $M(\mu) -– \mu$ where M is the mapping rotation, meaning we find the hue shift of each Gaussian cluster. Then, depending on the likelihood of a pixel $x_j$ belonging to the ith Gaussian $p(i|x_j, \theta)$, we calculate the new hue value, 
 $
 T(x_j)^{H} = x_j^{H} + \sum\limits_{i=1}^K p(i|x_j, \theta)(M_i(\mu_i)^{H}-(\mu_i)^{H})
 $,
@@ -199,8 +242,8 @@ Below are results that demonstrate the “success” of the algorithm introduced
 
 \begin{figure}[h]
   \includegraphics[width=0.23\textwidth]{isihara1.png}
- \includegraphics[width=0.23\textwidth]{isihara2.png}
-\includegraphics[width=0.23\textwidth]{isihara3.png}
+  \includegraphics[width=0.23\textwidth]{isihara2.png}
+  \includegraphics[width=0.23\textwidth]{isihara3.png}
   \includegraphics[width=0.23\textwidth]{isihara4.png}
   \caption{(top-left) Original image; (top-right) Original image, protanope view; (bottom-left) Corrected image; (bottom-right) Corrected image, protanope view, 7 now visible}
   \label{fig:isihara}
@@ -208,30 +251,34 @@ Below are results that demonstrate the “success” of the algorithm introduced
 
 \begin{figure}[h]
   \includegraphics[width=0.23\textwidth]{fruits1.png}
- \includegraphics[width=0.23\textwidth]{fruits3.png}
-\includegraphics[width=0.23\textwidth]{fruits2.png}
+  \includegraphics[width=0.23\textwidth]{fruits3.png}
+  \includegraphics[width=0.23\textwidth]{fruits2.png}
   \includegraphics[width=0.23\textwidth]{fruits4.png}
   \caption{(top-left) Original image; (top-right) Original image, deuteranope view; (bottom-left) Corrected image; (bottom-right) Corrected image, protanope view, three piles now visible}
   \label{fig:fruits}
 \end{figure}
 
-An interesting result from our implementation was the re-colored version of the red flower. As seen in figure \ref{fig:flower}, re-coloring changed the leaves to blue in simulation. Remarkably, the paper that we followed reported a change in, rather, the flower to blue after the re-colorization. This may be due to the algorithm being stuck in a local minima…? NEED YOUR HELP HERE ☺ 
+An interesting result from our implementation was the re-colored version of the red flower. As seen in figure \ref{fig:flower}, re-coloring changed the leaves to blue and the flower to yellow in simulation. Remarkably, the paper that we followed reported a change in, rather, the flower to blue and the laeves to yellow after the re-colorization. It is possible that our implementation of the algorithm gets stuck in a local minimum and is unable to find the global minimum. Because our result essentially just swaps the places of the colors, the symmetric KL divergences will be about equal to those of the paper; this creates a result whose objective function value is extremely close, if not equal, to that of the global minimum. 
+
+There are various solutions to this issue, none of which are clearly better than the others. The first is to change the initialization during optimization. While we tried this, we were unable to find one that performed better than what we currently have. The second is to run the optimization multiple times with various initializations, but the increase in runtime may be prohibitive. This is especially true since our colors are essentially the same as the paper's in this case, just flipped, which means that the increase in performance may not always be substantial. There are other ways to deal with getting stuck in local minima, such as simulated annealing and random restarts, but we didn't have time to implement these. Again, however, these methods are often extremely costly time-wise. 
 
 \begin{figure}[h]
   \includegraphics[width=0.23\textwidth]{flower1.png}
-\includegraphics[width=0.23\textwidth]{flower2.png}
-\includegraphics[width=0.23\textwidth]{flower3.png}
-\includegraphics[width=0.23\textwidth]{flower4.png}
- \caption{(top-left) Original image; (top-right) Original image, deuteranope view; (bottom-left) Simulated corrected image ([2]); (bottom-right) SImulated corrected image (ours)}
+  \includegraphics[width=0.23\textwidth]{flower2.png}
+  \includegraphics[width=0.23\textwidth]{flower3.png}
+  \includegraphics[width=0.23\textwidth]{flower4.png}
+  \caption{(top-left) Original image; (top-right) Original image, deuteranope view; (bottom-left) Simulated corrected image ([2]); (bottom-right) SImulated corrected image (ours)}
   \label{fig:flower}
 \end{figure}
 
-	After implementing the algorithm, we see obvious practical problems with it. For one, it is non-deterministic, as the paper admits that it needs to be performed several times, taking the solution with the least error, to find the best re-colorization. This problem is due to the optimization getting stuck in local minima. XX MAYBE ADD SOMETHING HERE? Furthermore, if there were more time, it would have been interesting to compare the results of another re-colorization algorithm, such as in (Khun), that claims to preserve the “naturalness” of the image. Here, we see, as in the garden image, that results can sometimes seem very unnatural. 
+	After implementing the algorithm, we see obvious practical problems with it. For one, it is non-deterministic, as the paper admits that it needs to be performed several times, taking the solution with the least error, to find the best re-colorization. This problem is due to the optimization possibly getting stuck in local minima. As noted above, there are several approaches that we could take to tackle this issue. Furthermore, if there were more time, it would have been interesting to compare the results of another re-colorization algorithm, such as in (Khun), that claims to preserve the “naturalness” of the image. Here, we see, as in the garden image, that results can sometimes seem very unnatural. 
 
 \begin{figure}[h]
   \includegraphics[width=0.23\textwidth]{peppers2.png}
-\includegraphics[width=0.23\textwidth]{peppers.png}
- \caption{(a) Original image; (b) Simulation of corrected image, protanopic, note some of the unnaturalness}
+  \includegraphics[width=0.23\textwidth]{peppers_original_sim.png}
+  \includegraphics[width=0.23\textwidth]{peppers.png}
+  \includegraphics[width=0.23\textwidth]{peppers_12.png}
+  \caption{(a) Original image; (b) Simulation of the original image, protanopic; (c) Simulation of corrected image, protanopic, using $K=6$ when fitting a GMM; note some of the unnaturalness (d) Simulation of corrected image, protanopic, using $K=12$ when fitting a GMM; note the lessened unnaturalness}
   \label{fig:peppers}
 \end{figure}
 

@@ -150,8 +150,7 @@ corRGB = applycform(imgLAB, cform);
 end
 
 % finds Symmetric KL divergence between all pairs of the k components
-% uses closed form formula from the paper (+google. the one in the paper is
-% weird and confusing and possibly not technically correct?)
+% uses closed form formula from the paper
 function divergences = KLDivergence(mus, sigmas, k)
 % create empty vector to store divergences in for each pair
 % there are k choose 2 pairs = k!/(2!(k-2)!) = k(k-1)/2
