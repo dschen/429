@@ -40,7 +40,12 @@ end
 imgRGB = imread(imgPath);
 % convert RGB range (0-255) to (0-1)
 imgRGB = im2double(imgRGB);
+
+if (strcmp('normal', type))
+    corRGB = imgRGB;
+else
 [~, corRGB] = getRecolor(imgRGB, type, calib);
+end
 
 % Display images
 Fig = figure;

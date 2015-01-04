@@ -134,9 +134,7 @@ for j = 1:dim(1)
     for i = 1:numComponents
         hj = hj +  P(j, i)*differenceMus(i);
     end
-    %H(j) = hj;
-    
-    % TESTING TESTING TESTING
+    % interpolation based on severity
     H(j) = H(j)*(1.0-calib.severity) + hj*(calib.severity);
     
 end
