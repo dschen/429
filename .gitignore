@@ -4,3 +4,6 @@
 # emacs autosave files
 *.m~
 
+# LaTeX compilation files
+*.log
+*.aux
